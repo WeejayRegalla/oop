@@ -1,9 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class Task:
     def __init__(self, title, due_date, category):
         self.title = title
-        self.due_date = datetime.strptime(due_date, '%Y-%m-%d')
+        self.due_date = datetime.strptime(due_date, '%Y-%m-%d %I:%M %p')
         self.category = category
         self.completed = False
 
@@ -15,7 +15,7 @@ class Task:
 
     def __str__(self):
         status = "✔️ Done" if self.completed else "❗ Pending"
-        return f"[{status}] {self.title} ({self.category}) - Due: {self.due_date.date()}"
+        return f"[{status}] {self.title} ({self.category}) - Due: {self.due_date.strftime('%Y-%m-%d %I:%M %p')}"
     
 # Studdy session
 class StudySession(Task):
@@ -30,6 +30,7 @@ class StudySession(Task):
     
 # User 
 class User:
+    
     def __init__(self, name):
         self.name = name
         self.tasks = []
@@ -51,6 +52,28 @@ class User:
         else:
             print("Invalid task number.")
 
+    def check_upcoming_tasks(self):
+        now = datetime.now()
+        found = False
+        print("\n🔔 Upcoming Deadlines:")
+        for task in self.tasks:
+            if not task.completed:
+                time_left = task.due_date - now
+                if timedelta(minutes=0) <= time_left <= timedelta(minutes=15):
+                    print(f"⚠️ Due soon (within 15 mins): {task.title} at {task.due_date.strftime('%I:%M %p')}")
+                    found = True
+                elif time_left < timedelta(minutes=0):
+                    print(f"❌ OVERDUE: {task.title} (was due at {task.due_date.strftime('%Y-%m-%d %I:%M %p')})")
+                    found = True
+                elif task.due_date.date() == now.date():
+                    print(f"📅 Due today: {task.title} at {task.due_date.strftime('%I:%M %p')}")
+                    found = True
+                elif task.due_date.date() == (now.date() + timedelta(days=1)):
+                    print(f"🕑 Due tomorrow: {task.title} at {task.due_date.strftime('%I:%M %p')}")
+                    found = True
+        if not found:
+            print("✅ No upcoming tasks.")
+
 # Main App 
 def main():
     print("🎓 Welcome to StudyBuddy!")
@@ -64,8 +87,11 @@ def main():
 
         user = User(name)
 
+
         while True:
-            print(f"\nHi {user.name}! What would you like to do?")
+            print(f"\nHi {user.name}!")
+            user.check_upcoming_tasks()
+            print("\nWhat would you like to do?")
             print("1. Add Task")
             print("2. Add Study Session")
             print("3. View All Tasks")
@@ -75,38 +101,37 @@ def main():
             choice = input("Choose an option (1-6): ")
 
             if choice == "1":
-                print("🔔 Reminder: it should have a title.")
                 title = input("Enter task title: ").strip()
                 if not title:
-                    print("❌ Provide title of your task.")
+                    print("❌ Title is required.")
                     continue
-                print("🔔 Reminder: it should have a due date.")
-                due = input("Enter due date (YYYY-MM-DD): ").strip()
+                due = input("Enter due date and time (YYYY-MM-DD HH:MM AM/PM): ").strip()
                 if not due:
-                    print("❌ Provide due date of your task.")
+                    print("❌ Due date is required.")
                     continue
-                print("🔔 Reminder: it should have a category.")
                 category = input("Enter category (Assignment/Quiz/Exam/Other): ").strip()
                 if not category:
-                    print("❌ You did not put category.")
+                    print("❌ Category is required.")
                     continue
 
-                task = Task(title, due, category)
-                user.add_task(task)
-                print("✅ Task added!")
+                try:
+                    task = Task(title, due, category)
+                    user.add_task(task)
+                    print("✅ Task added!")
+                except ValueError:
+                     print("❌ Format must be: YYYY-MM-DD HH:MM AM/PM")
 
             elif choice == "2":
-                print("🔔 Reminder: it should have a title.")
-                title = input("Enter session title: ")
-                print("🔔 Reminder: it should have a due date.")
-                due = input("Enter session date (YYYY-MM-DD): ")
-                print("🔔 Reminder: it should have a subject.")
-                subject = input("Enter subject: ")
-                print("🔔 Reminder: It can have a duration of time or it may not.")
-                duration = int(input("Enter duration in hours: "))
-                session = StudySession(title, due, subject, duration)
-                user.add_task(session)
-                print("✅ Study session added!")
+                title = input("Enter session title: ").strip()
+                due = input("Enter session date and time (YYYY-MM-DD HH:MM AM/PM): ").strip()
+                subject = input("Enter subject: ").strip()
+                try:
+                    duration = int(input("Enter duration in hours: "))
+                    session = StudySession(title, due, subject, duration)
+                    user.add_task(session)
+                    print("✅ Study session added!")
+                except ValueError:
+                    print("❌ Duration must be a number.")
 
             elif choice == "3":
                 print("\n📋 Your Tasks:")
@@ -117,18 +142,19 @@ def main():
                 user.list_tasks()
                 user_input = input("\nEnter task number to mark as done or type 'back' to return in menu: ").strip().lower()
                 if user_input == "back":
-                    pass  
+                    continue
                 else:
                     try:
                         index = int(user_input) - 1
                         user.mark_task_done(index)
                     except ValueError:
                         print("❌ Please enter a valid number.")
-            elif choice == "5":
+
+            elif choice == "5": 
                 user.list_tasks()
                 user_input = input("\Enter task number to delete or type 'back' to return in menu ").strip().lower()
                 if user_input == "back":
-                    pass
+                    continue
                 else:
                     try:
                         index = int(user_input) - 1
